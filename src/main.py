@@ -1,4 +1,5 @@
-from html_parser import Html_paser
+from document_parser import Document_parser
+import pathlib
 
 if __name__ == '__main__':
-    print(Html_paser().parse_url('https://s-f.ca/'))
+    print(Document_parser().parse(str(pathlib.Path("../data/djvu.djvu").resolve())))
