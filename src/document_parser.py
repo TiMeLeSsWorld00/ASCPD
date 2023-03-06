@@ -3,7 +3,8 @@ import subprocess
 
 import textract
 import os.path
-import aspose.words as aw
+
+from win32com import client as wc
 
 from pdfminer.high_level import extract_text
 
@@ -16,10 +17,15 @@ class Document_parser:
             return textract.process(path).decode('utf-8')
 
         if extension == 'doc':
-            doc = aw.Document(path)
-            r = random.randint(1, 10000)
-            doc.save(path + str(r) + '.docx')
-            return textract.process(path + str(r) + '.docx').decode('utf-8')
+            new_path = path + str(random.randint(1, 100000)) + '.docx'
+
+            w = wc.Dispatch('Word.Application')
+            doc = w.Documents.Open(path)
+            doc.SaveAs(new_path, 16)
+            w.ActiveDocument.Close()
+            text = textract.process(new_path).decode('utf-8')
+            os.system('del ' + new_path)
+            return text
 
         if extension == 'pdf':
             return extract_text(path)
