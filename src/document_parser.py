@@ -34,8 +34,4 @@ class Document_parser:
             return subprocess.run(["../djvutxt/djvutxt.exe", path],
                                   stdout=subprocess.PIPE).stdout.decode('utf-8', errors="ignore")
 
-        raise
-
-    def __parse_doc_docx(self, path: str) -> str:
-        text = textract.process(path, method='pdfminer')
-        return text
+        raise ValueError("Not supported type of the document. Use docx, doc, pdf, djvu")
