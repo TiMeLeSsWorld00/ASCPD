@@ -2,7 +2,6 @@ import logging
 from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
-import asyncio
 import time
 
 from tqdm import tqdm
@@ -10,6 +9,12 @@ from tqdm import tqdm
 logging.basicConfig(
     format='%(asctime)s %(levelname)s:%(message)s',
     level=logging.INFO)
+
+def is_document(url):
+    doc_name = url.split('.')[-1]
+    if doc_name in ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'djvu', 'bmp', 'raw']:
+        return True
+    return False
 
 def get_unique_domens(urls):
     s = set()
@@ -21,7 +26,7 @@ def get_unique_domens(urls):
         elif u[:8] == 'https://':
             url = u[8:].split('/')[0]
         elif u[:4] == 'www.':
-            url = u
+            url = u.split('/')[0]
         else:
             continue
 
@@ -53,14 +58,8 @@ def get_unique_documents(urls):
         if '@' in url:
             continue
 
-        doc_name = url.split('.')[-1]
-        match doc_name:
-            case 'pdf':
-                s.add(url)
-            case 'doc':
-                s.add(url)
-            case 'docx':
-                s.add(url)
+        if url.split('.')[-1] in ['pdf', 'doc', 'docx']:
+            s.add(url)
 
     return list(s)
 
@@ -76,6 +75,7 @@ class Crawler:
         #stats
         self.outer_urls = []
         self.domen_urls = []
+        self.non_working_url = []
 
     def download_url(self, url):
         headers = {
@@ -95,9 +95,12 @@ class Crawler:
             self.urls_to_visit.add(url)
 
     def crawl(self, url):
+        if is_document(url):
+            return
         html = self.download_url(url)
         for url in self.get_linked_urls(url, html):
             if url is None:
+                self.non_working_url.append(url)
                 continue
             if self.base_url in url:
                 self.add_url_to_visit(url)
@@ -111,7 +114,7 @@ class Crawler:
         t_start = time.time()
         tqdm_ = tqdm()
         while self.urls_to_visit:
-            if time.time() - t_start > 60 * 1:
+            if time.time() - t_start > 60 * 10:
                 break
             tqdm_.update(1)
             url = self.urls_to_visit.pop()
@@ -120,6 +123,7 @@ class Crawler:
                 self.crawl(url)
             except Exception:
                 logging.exception(f'Failed to crawl: {url}')
+                self.non_working_url.append(url)
             finally:
                 self.visited_urls.add(url)
         print('CRAWLING DONE')
@@ -142,14 +146,14 @@ class Crawler:
         print("общее количество ссылок на внешние ресурсы", len(self.outer_urls))
         print("количество уникальных внешних ресурсов", len(ou))
         print("количество уникальных ссылок на файлы doc/docx/pdf", len(ddu))
-        print("количество неработающих страниц", "????????????????")
+        print("количество неработающих страниц", len(self.non_working_url), "уникальных", len(set(self.non_working_url)))
 
 if __name__ == '__main__':
 
     #https://www.msu.ru/
-    #https://spbu.ru
+    #https://spbu.ru/
 
-    Crawler(base_url= 'https://spbu.ru/', domen_url= 'spbu.ru').run()
+    Crawler(base_url= 'https://www.msu.ru/', domen_url= 'msu.ru').run()
 
 
 
