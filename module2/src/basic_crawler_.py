@@ -14,7 +14,10 @@ logging.basicConfig(
 
 def is_document(url):
     doc_name = url.split('.')[-1]
-    if doc_name in ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'djvu', 'bmp', 'raw']:
+    if doc_name.lower() in ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'djvu', 'bmp', 'raw',
+                            'ppt', 'pptx', 'xsl', 'xlsx', 'gif', 'webp', 'zip', 'rar', 'gz',
+                            '3gp', 'avi', 'mov', 'mp4', 'm4v', 'm4a', 'mp3', 'mkv', 'ogv', 'ogm',
+                            'webm', 'wav', 'txt', 'rtf']:
         return True
     return False
 
@@ -116,7 +119,7 @@ class Crawler:
         t_start = time.time()
         tqdm_ = tqdm()
         while self.urls_to_visit:
-            if time.time() - t_start > 60 * 10:
+            if time.time() - t_start > 66666*60 * 10:
                 break
             tqdm_.update(1)
             url = self.urls_to_visit.pop()
