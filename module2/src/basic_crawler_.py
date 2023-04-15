@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 import time
 
 from tqdm import tqdm
+import json
+import validators
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s:%(message)s',
@@ -65,7 +67,7 @@ def get_unique_documents(urls):
 
 class Crawler:
 
-    def __init__(self, base_url, domen_url):
+    def __init__(self, base_url = '', domen_url = ''):
         self.base_url = base_url
         self.domen_url = domen_url
         self.visited_urls = set()
@@ -99,7 +101,7 @@ class Crawler:
             return
         html = self.download_url(url)
         for url in self.get_linked_urls(url, html):
-            if url is None:
+            if (url is None) or (not validators.url(url)):
                 self.non_working_url.append(url)
                 continue
             if self.base_url in url:
@@ -126,7 +128,41 @@ class Crawler:
                 self.non_working_url.append(url)
             finally:
                 self.visited_urls.add(url)
+
         print('CRAWLING DONE')
+        self.print_stats()
+
+        return self
+
+    def to_csv(self, name: str):
+        df = dict()
+        df['base_url'] = self.base_url
+        df['domen_url'] = self.domen_url
+        df['visited_urls'] = list(self.visited_urls)
+        df['urls_to_visit'] = list(self.urls_to_visit)
+        df['outer_urls'] = list(self.outer_urls)
+        df['domen_urls'] = list(self.domen_urls)
+        df['non_working_url'] = list(self.non_working_url)
+
+        with open(name, 'w') as convert_file:
+            convert_file.write(json.dumps(df, indent=4))
+
+    def from_csv(self, name: str):
+        with open(name, 'r') as convert_file:
+            df = json.load(convert_file)
+
+        self.base_url = df['base_url']
+        self.domen_url = df['domen_url']
+        self.visited_urls = set(df['visited_urls'])
+        self.urls_to_visit = set(df['urls_to_visit'])
+        self.outer_urls = df['outer_urls']
+        self.domen_urls = df['domen_urls']
+        self.non_working_url = df['non_working_url']
+
+        return self
+
+
+    def print_stats(self):
         print("were visited", len(self.visited_urls))
         print("not visited, but want to", len(self.urls_to_visit))
         print("all inner domens urls: ", len(self.domen_urls))
@@ -136,25 +172,26 @@ class Crawler:
         ou = get_unique_domens(self.outer_urls)
         print("unique outer domens urls: ", len(ou), ou)
 
-
         ddu = get_unique_documents(self.domen_urls)
         print("unique documents urls: ", len(ddu), ddu)
 
-        print("общее количество страниц и всех ссылок", len(self.visited_urls) + len(self.urls_to_visit) + len(self.domen_urls) + len(self.outer_urls))
+        print("общее количество страниц и всех ссылок",
+              len(self.visited_urls) + len(self.urls_to_visit) + len(self.domen_urls) + len(self.outer_urls))
         print("количество внутренних страниц", len(self.visited_urls) + len(self.urls_to_visit))
         print("количество внутренних поддоменов (уникальных)", len(du))
         print("общее количество ссылок на внешние ресурсы", len(self.outer_urls))
         print("количество уникальных внешних ресурсов", len(ou))
         print("количество уникальных ссылок на файлы doc/docx/pdf", len(ddu))
-        print("количество неработающих страниц", len(self.non_working_url), "уникальных", len(set(self.non_working_url)))
+        print("количество неработающих страниц", len(self.non_working_url), "уникальных",
+              len(set(self.non_working_url)))
+
 
 if __name__ == '__main__':
 
     #https://www.msu.ru/
     #https://spbu.ru/
 
-    Crawler(base_url= 'https://www.msu.ru/', domen_url= 'msu.ru').run()
-
-
+    Crawler(base_url= 'https://www.msu.ru/', domen_url= 'msu.ru').run().to_csv('msu.csv')
+    Crawler().from_csv('msu.csv').print_stats()
 
     # Crawler(base_url= 'https://spbu.ru/').run()
