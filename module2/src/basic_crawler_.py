@@ -103,17 +103,17 @@ class Crawler:
         if is_document(url):
             return
         html = self.download_url(url)
-        for url in self.get_linked_urls(url, html):
-            if (url is None) or (not validators.url(url)):
-                self.non_working_url.append(url)
+        for u in self.get_linked_urls(url, html):
+            if (u is None) or (not validators.url(u)):
+                self.non_working_url.append(u)
                 continue
-            if self.base_url in url:
-                self.add_url_to_visit(url)
+            if self.base_url in u:
+                self.add_url_to_visit(u)
             else:
-                if self.domen_url in url:
-                    self.domen_urls.append(url)
+                if self.domen_url in u:
+                    self.domen_urls.append(u)
                 else:
-                    self.outer_urls.append(url)
+                    self.outer_urls.append(u)
 
     def run(self):
         t_start = time.time()
@@ -131,6 +131,7 @@ class Crawler:
                 self.non_working_url.append(url)
             finally:
                 self.visited_urls.add(url)
+                logging.info(f'Rest: {len(self.urls_to_visit)}')
 
         print('CRAWLING DONE')
         self.print_stats()
